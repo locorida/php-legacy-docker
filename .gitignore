@@ -1,0 +1,22 @@
+# Local configuration and secrets
+.env
+certs/
+*.pem
+*.key
+
+# Downloaded tools (mkcert.exe is fetched and checksum-verified by scripts/setup-certs.ps1)
+tools/
+
+# Local data
+data/
+initdb/
+
+# Watcher state
+watch-reload.log
+.watch-reload.pid
+
+# Editors / OS
+.idea/
+.vscode/
+Thumbs.db
+.DS_Store

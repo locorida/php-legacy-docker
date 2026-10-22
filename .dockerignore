@@ -1,0 +1,5 @@
+# Only Dockerfile, rootfs/ and app/ belong in the build context.
+*
+!Dockerfile
+!rootfs/
+!app/

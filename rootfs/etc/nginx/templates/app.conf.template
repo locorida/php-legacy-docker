@@ -1,0 +1,48 @@
+# Rendered by entrypoint.sh to /etc/nginx/conf.d/app.conf.
+# Only ${SSL_CERT}, ${SSL_KEY} and ${DOCUMENT_ROOT} are substituted.
+
+server {
+  listen 80 default_server;
+  listen 443 ssl default_server;
+  http2 on;
+  server_name _;
+
+  ssl_certificate     ${SSL_CERT};
+  ssl_certificate_key ${SSL_KEY};
+  ssl_protocols       TLSv1.2 TLSv1.3;
+
+  root  ${DOCUMENT_ROOT};
+  index index.php index.html;
+  client_max_body_size 64m;
+
+  access_log /dev/stdout;
+  error_log  /dev/stderr warn;
+
+  # Front-controller style routing, the common denominator of legacy PHP apps.
+  location / {
+    try_files $uri $uri/ /index.php?$query_string;
+  }
+
+  location ~ \.php$ {
+    try_files $uri =404;
+    include       fastcgi_params;
+    fastcgi_param SCRIPT_FILENAME $document_root$fastcgi_script_name;
+    fastcgi_param HTTPS $https if_not_empty;
+    fastcgi_pass  127.0.0.1:9000;
+    fastcgi_read_timeout 300;
+  }
+
+  # Liveness probe for the Docker HEALTHCHECK (container-internal only).
+  location = /fpm-ping {
+    allow 127.0.0.1;
+    deny all;
+    access_log off;
+    fastcgi_param REQUEST_METHOD  GET;
+    fastcgi_param REQUEST_URI     /fpm-ping;
+    fastcgi_param SCRIPT_NAME     /fpm-ping;
+    fastcgi_param SCRIPT_FILENAME /fpm-ping;
+    fastcgi_pass  127.0.0.1:9000;
+  }
+
+  location ~ /\.(?!well-known) { deny all; }
+}

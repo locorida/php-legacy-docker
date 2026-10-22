@@ -1,0 +1,4 @@
+# Files used inside the Linux container need LF; a CRLF in a shell script breaks it.
+# PowerShell scripts get CRLF for Windows PowerShell 5.1.
+* text=auto eol=lf
+*.ps1 text eol=crlf

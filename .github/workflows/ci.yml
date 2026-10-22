@@ -1,0 +1,60 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build-and-smoke-test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - php: "8.5"
+            image: ""                      # Dockerfile default
+          - php: "8.4"
+            image: php:8.4-fpm-trixie
+    env:
+      CONTAINER: php-legacy-ci
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: docker/setup-buildx-action@v3
+
+      - name: Build image (PHP ${{ matrix.php }})
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          load: true
+          tags: php-legacy:ci
+          build-args: ${{ matrix.image && format('PHP_IMAGE={0}', matrix.image) || '' }}
+          cache-from: type=gha,scope=php-${{ matrix.php }}
+          cache-to: type=gha,mode=max,scope=php-${{ matrix.php }}
+
+      - name: Start container
+        run: |
+          docker run -d --name "$CONTAINER" \
+            -p 127.0.0.1:8080:80 -p 127.0.0.1:8443:443 \
+            -e DB_PASSWORD=ci-secret \
+            php-legacy:ci
+
+      - name: Smoke test
+        run: bash tests/smoke.sh "$CONTAINER" 8080 8443 "${{ matrix.php }}"
+
+      - name: Graceful stop
+        run: |
+          docker stop -t 120 "$CONTAINER"
+          docker logs "$CONTAINER" 2>&1 | grep -q "Shutdown complete" \
+            || { echo "MariaDB did not shut down cleanly"; exit 1; }
+
+      - name: Container logs
+        if: failure()
+        run: docker logs "$CONTAINER" || true
