@@ -31,6 +31,31 @@ That setup ages badly:
 
 This project is the result of that migration, rewritten as a generic template.
 
+### Measured: Vagrant VM vs. this container
+
+Same Windows 11 machine (Intel Core i7-8700, 6 cores / 12 threads, 32 GB RAM, Docker Desktop with
+WSL2). The VM is an existing Vagrant + VirtualBox 7.2 box (Ubuntu guest, 4 vCPUs, 4 GB RAM,
+PHP 8.4). VM and Docker were measured one after the other, never running at the same time.
+
+| | Vagrant VM | This container | Factor |
+|---|---|---|---|
+| Start until usable (`vagrant up` vs. `up.ps1` until healthy) | 135 s | 5 s | ~27x |
+| Stop (`vagrant halt` vs. `down.ps1`, both with a clean DB shutdown) | 52 s | 5 s | ~10x |
+| PHP CPU benchmark, PHP 8.4 (median of 3) | 9.1 s | 2.4 s | ~3.8x |
+| PHP CPU benchmark, PHP 8.5 in the container (median of 3) | - | 1.9 s | ~4.8x vs. VM |
+
+Notes:
+
+- Docker Desktop itself took 21 s for a cold start. That happens once per Windows login, and
+  Docker Desktop usually starts automatically.
+- With WSL2 installed, the Windows hypervisor is always on and VirtualBox has to run on top of it
+  (Hyper-V / NEM mode). That is the realistic setup on a machine that also runs Docker, and it is
+  the main reason for the CPU gap. On a host without Hyper-V, VirtualBox would be faster.
+- The benchmark is [`tests/bench.php`](tests/bench.php): single-threaded, CPU only (arrays,
+  strings, md5, sorting, JSON, regex). It says nothing about I/O. Code on Windows bind mounts
+  is a separate topic, see [Performance on Windows](#performance-on-windows).
+- These are numbers from one machine. Run the script on yours.
+
 ## Architecture: one image, not Compose
 
 The usual Docker answer is Docker Compose with one container per service. This project uses
@@ -211,6 +236,7 @@ Run the same test locally (Git Bash): `bash tests/smoke.sh php-legacy 8080 8443 
 | `scripts/watch-reload.ps1` | File watcher for `OPCACHE_VALIDATE_TIMESTAMPS=0` |
 | `scripts/common.ps1` | Shared PowerShell helpers |
 | `tests/smoke.sh` | Smoke test (CI and local) |
+| `tests/bench.php` | CPU micro benchmark used for the VM comparison |
 
 ## License
 

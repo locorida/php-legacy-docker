@@ -67,6 +67,7 @@ RUN chmod 0755 /usr/local/bin/entrypoint.sh /usr/local/bin/healthcheck.sh \
 WORKDIR /var/www/html
 EXPOSE 80 443 3306 1025 8025
 STOPSIGNAL SIGTERM
-HEALTHCHECK --interval=10s --timeout=5s --start-period=60s --retries=3 \
+# --start-interval: probe every second while starting, so "healthy" is reported without delay.
+HEALTHCHECK --interval=10s --timeout=5s --start-period=60s --start-interval=1s --retries=3 \
   CMD ["/usr/local/bin/healthcheck.sh"]
 ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]

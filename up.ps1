@@ -99,7 +99,7 @@ if ($exists) {
 Write-Host -NoNewline 'Waiting for services '
 $deadline = (Get-Date).AddSeconds(180)
 do {
-    Start-Sleep -Seconds 2
+    Start-Sleep -Milliseconds 500
     $health = (& docker inspect --format '{{.State.Health.Status}}' $name 2>$null)
     Write-Host -NoNewline '.'
 } while ($health -ne 'healthy' -and (Get-Date) -lt $deadline)
